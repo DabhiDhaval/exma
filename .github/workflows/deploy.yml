@@ -1,0 +1,32 @@
+name: Deploy Static Site to AWS EC2
+
+on:
+  push:
+    branches:
+      - main # Trigger the workflow on pushes to the 'main' branch
+      
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        # This step pulls your repository code onto the GitHub runner
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          # Use the private key stored securely in GitHub Secrets
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        # This step registers the SSH key for use in subsequent steps
+
+      - name: Configure Known Hosts
+        run: |
+          # Prevents "Are you sure you want to continue connecting?" prompt
+          ssh-keyscan -H ${{ secrets.AWS_EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy via SCP (Secure Copy)
+        run: |
+          # Copy all files (*) recursively (-r) to the Nginx root directory on EC2
+          scp -r * \
+            ${{ secrets.AWS_EC2_USER }}@${{ secrets.AWS_EC2_HOST }}:/var/www/static-site/
